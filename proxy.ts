@@ -6,12 +6,12 @@ export default auth((req) => {
   const isOnDashboard = req.nextUrl.pathname.startsWith("/dashboard");
   const isOnLogin = req.nextUrl.pathname.startsWith("/login");
 
-  // Se está tentando acessar dashboard sem estar logado, redireciona para login
+  // If trying to access dashboard without being logged in, redirect to login
   if (isOnDashboard && !isLoggedIn) {
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
-  // Se está logado e tenta acessar login, redireciona para dashboard
+  // If logged in and trying to access login, redirect to dashboard
   if (isOnLogin && isLoggedIn) {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
   }

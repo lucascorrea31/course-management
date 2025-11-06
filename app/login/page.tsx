@@ -37,7 +37,7 @@ export default function LoginPage() {
           router.refresh();
         }
       } else {
-        // Registro
+        // Registration
         const response = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -47,9 +47,9 @@ export default function LoginPage() {
         const data = await response.json();
 
         if (!response.ok) {
-          setError(data.error || "Erro ao criar conta");
+          setError(data.error || "Error creating account");
         } else {
-          // Após registro, faz login automático
+          // After registration, auto login
           const result = await signIn("credentials", {
             email,
             password,
@@ -65,7 +65,7 @@ export default function LoginPage() {
         }
       }
     } catch (err) {
-      setError("Erro ao processar requisição");
+      setError("Error processing request");
     } finally {
       setLoading(false);
     }

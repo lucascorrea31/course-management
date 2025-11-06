@@ -5,36 +5,36 @@ import Product from "@/models/Product";
 import User from "@/models/User";
 
 /**
- * Webhook para receber eventos da Kiwify
+ * Webhook to receive Kiwify events
  *
- * Eventos suportados:
- * - sale.approved: Venda aprovada
- * - sale.refused: Venda recusada
- * - sale.refunded: Venda reembolsada
+ * Supported events:
+ * - sale.approved: Sale approved
+ * - sale.refused: Sale refused
+ * - sale.refunded: Sale refunded
  * - sale.chargeback: Chargeback
- * - subscription.canceled: Assinatura cancelada
+ * - subscription.canceled: Subscription canceled
  *
- * Configure este endpoint na Kiwify:
- * https://seu-dominio.com/api/kiwify/webhook
+ * Configure this endpoint in Kiwify:
+ * https://your-domain.com/api/kiwify/webhook
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    console.log("Webhook Kiwify recebido:", JSON.stringify(body, null, 2));
+    console.log("Kiwify webhook received:", JSON.stringify(body, null, 2));
 
     const { event, data } = body;
 
     if (!event || !data) {
       return NextResponse.json(
-        { error: "Payload inválido" },
+        { error: "Invalid payload" },
         { status: 400 }
       );
     }
 
     await dbConnect();
 
-    // Processa diferentes tipos de eventos
+    // Process different event types
     switch (event) {
       case "sale.approved":
       case "sale.refused":
@@ -48,14 +48,14 @@ export async function POST(request: NextRequest) {
         break;
 
       default:
-        console.log(`Evento não tratado: ${event}`);
+        console.log(`Unhandled event: ${event}`);
     }
 
-    return NextResponse.json({ success: true, message: "Webhook processado" });
+    return NextResponse.json({ success: true, message: "Webhook processed" });
   } catch (error: any) {
-    console.error("Erro ao processar webhook:", error);
+    console.error("Error processing webhook:", error);
     return NextResponse.json(
-      { error: "Erro ao processar webhook" },
+      { error: "Error processing webhook" },
       { status: 500 }
     );
   }
@@ -63,17 +63,17 @@ export async function POST(request: NextRequest) {
 
 async function handleSaleEvent(event: string, data: any) {
   try {
-    // Encontra o produto local
+    // Find local product
     const product = await Product.findOne({ kiwifyId: data.product_id });
 
-    // Determina o status baseado no evento
+    // Determine status based on event
     let status: "paid" | "refused" | "refunded" | "chargeback" | "pending" = "pending";
     if (event === "sale.approved") status = "paid";
     else if (event === "sale.refused") status = "refused";
     else if (event === "sale.refunded") status = "refunded";
     else if (event === "sale.chargeback") status = "chargeback";
 
-    // Atualiza ou cria a venda
+    // Update or create sale
     await Sale.findOneAndUpdate(
       { kiwifyId: data.id },
       {
@@ -94,21 +94,21 @@ async function handleSaleEvent(event: string, data: any) {
       { upsert: true, new: true }
     );
 
-    console.log(`Venda ${data.id} processada com status: ${status}`);
+    console.log(`Sale ${data.id} processed with status: ${status}`);
   } catch (error) {
-    console.error("Erro ao processar evento de venda:", error);
+    console.error("Error processing sale event:", error);
     throw error;
   }
 }
 
 async function handleSubscriptionEvent(event: string, data: any) {
   try {
-    console.log(`Assinatura ${data.id} cancelada`);
+    console.log(`Subscription ${data.id} canceled`);
 
-    // TODO: Implementar lógica para assinaturas
-    // Pode criar um modelo Subscription se necessário
+    // TODO: Implement subscription logic
+    // Can create a Subscription model if needed
   } catch (error) {
-    console.error("Erro ao processar evento de assinatura:", error);
+    console.error("Error processing subscription event:", error);
     throw error;
   }
 }

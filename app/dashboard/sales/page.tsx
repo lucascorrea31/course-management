@@ -56,7 +56,7 @@ export default function SalesPage() {
     try {
       setSyncing(true);
 
-      // Sincroniza vendas dos últimos 30 dias
+      // Sync sales from last 30 days
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 30);

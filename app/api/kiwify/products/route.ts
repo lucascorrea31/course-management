@@ -5,13 +5,13 @@ import Product from "@/models/Product";
 import { getKiwifyClient } from "@/lib/kiwify";
 
 /**
- * GET - Lista produtos do banco de dados local
+ * GET - List products from local database
  */
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await dbConnect();
@@ -22,22 +22,22 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ products });
   } catch (error: any) {
-    console.error("Erro ao buscar produtos:", error);
+    console.error("Error fetching products:", error);
     return NextResponse.json(
-      { error: "Erro ao buscar produtos" },
+      { error: "Error fetching products" },
       { status: 500 }
     );
   }
 }
 
 /**
- * POST - Sincroniza produtos da Kiwify
+ * POST - Sync products from Kiwify
  */
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await dbConnect();
@@ -67,13 +67,13 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      message: `${syncedProducts.length} produtos sincronizados com sucesso`,
+      message: `${syncedProducts.length} products synced successfully`,
       products: syncedProducts,
     });
   } catch (error: any) {
-    console.error("Erro ao sincronizar produtos:", error);
+    console.error("Error syncing products:", error);
     return NextResponse.json(
-      { error: error.message || "Erro ao sincronizar produtos" },
+      { error: error.message || "Error syncing products" },
       { status: 500 }
     );
   }

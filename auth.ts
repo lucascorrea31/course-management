@@ -14,31 +14,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("E-mail e senha são obrigatórios");
+          throw new Error("Email and password are required");
         }
 
         await dbConnect();
 
-        // Busca o usuário incluindo a senha
+        // Find user including password
         const user = await User.findOne({
           email: credentials.email,
         }).select("+password");
 
         if (!user) {
-          throw new Error("Credenciais inválidas");
+          throw new Error("Invalid credentials");
         }
 
-        // Verifica a senha
+        // Verify password
         const isPasswordValid = await bcrypt.compare(
           credentials.password as string,
           user.password
         );
 
         if (!isPasswordValid) {
-          throw new Error("Credenciais inválidas");
+          throw new Error("Invalid credentials");
         }
 
-        // Retorna o usuário (sem a senha)
+        // Return user (without password)
         return {
           id: user._id.toString(),
           name: user.name,

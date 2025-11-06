@@ -6,13 +6,13 @@ import Product from "@/models/Product";
 import { getKiwifyClient } from "@/lib/kiwify";
 
 /**
- * GET - Lista vendas do banco de dados local
+ * GET - List sales from local database
  */
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -45,22 +45,22 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("Erro ao buscar vendas:", error);
+    console.error("Error fetching sales:", error);
     return NextResponse.json(
-      { error: "Erro ao buscar vendas" },
+      { error: "Error fetching sales" },
       { status: 500 }
     );
   }
 }
 
 /**
- * POST - Sincroniza vendas da Kiwify
+ * POST - Sync sales from Kiwify
  */
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     const syncedSales = [];
 
     for (const kSale of kiwifySales) {
-      // Busca o produto local correspondente
+      // Find corresponding local product
       const product = await Product.findOne({
         kiwifyId: kSale.product_id,
         userId: session.user.id,
@@ -107,13 +107,13 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      message: `${syncedSales.length} vendas sincronizadas com sucesso`,
+      message: `${syncedSales.length} sales synced successfully`,
       sales: syncedSales,
     });
   } catch (error: any) {
-    console.error("Erro ao sincronizar vendas:", error);
+    console.error("Error syncing sales:", error);
     return NextResponse.json(
-      { error: error.message || "Erro ao sincronizar vendas" },
+      { error: error.message || "Error syncing sales" },
       { status: 500 }
     );
   }

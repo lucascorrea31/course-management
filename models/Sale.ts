@@ -73,7 +73,7 @@ const SaleSchema = new Schema<ISale>(
   }
 );
 
-// Índices para melhor performance
+// Indexes for better performance
 SaleSchema.index({ userId: 1, status: 1 });
 SaleSchema.index({ userId: 1, createdAt: -1 });
 SaleSchema.index({ "customer.email": 1 });
