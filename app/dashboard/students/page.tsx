@@ -14,6 +14,7 @@ import {
     XCircle,
     Clock,
     AlertCircle,
+    Shield,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
@@ -48,6 +49,7 @@ export default function StudentsPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [syncingGroup, setSyncingGroup] = useState(false);
 
     useEffect(() => {
         fetchStudents();
@@ -164,6 +166,38 @@ export default function StudentsPage() {
         }
     };
 
+    const handleSyncGroup = async () => {
+        if (!confirm("Deseja sincronizar o grupo do Telegram? Isso removerá alunos que não têm mais produtos ativos.")) {
+            return;
+        }
+
+        try {
+            setSyncingGroup(true);
+            const response = await fetch("/api/telegram/sync-group", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                toast.success("Grupo sincronizado com sucesso!", {
+                    description: `${data.results.removed} aluno(s) removido(s), ${data.results.kept} mantido(s).`,
+                });
+                await fetchStudents();
+            } else {
+                toast.error("Erro ao sincronizar grupo", {
+                    description: data.error || "Erro desconhecido",
+                });
+            }
+        } catch (error) {
+            console.error("Error syncing group:", error);
+            toast.error("Erro ao sincronizar grupo do Telegram");
+        } finally {
+            setSyncingGroup(false);
+        }
+    };
+
     const getTelegramStatusBadge = (status: string) => {
         switch (status) {
             case "active":
@@ -219,12 +253,21 @@ export default function StudentsPage() {
                     <h2 className="text-3xl font-bold tracking-tight">Alunos</h2>
                     <p className="text-muted-foreground">Lista de participantes dos seus cursos</p>
                 </div>
-                <Button
-                    onClick={fetchStudents}
-                    disabled={loading}>
-                    <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                    {loading ? "Carregando..." : "Atualizar"}
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        onClick={handleSyncGroup}
+                        disabled={syncingGroup}
+                        variant="outline">
+                        <Shield className={`mr-2 h-4 w-4 ${syncingGroup ? "animate-spin" : ""}`} />
+                        {syncingGroup ? "Sincronizando..." : "Limpar Grupo"}
+                    </Button>
+                    <Button
+                        onClick={fetchStudents}
+                        disabled={loading}>
+                        <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                        {loading ? "Carregando..." : "Atualizar"}
+                    </Button>
+                </div>
             </div>
 
             {/* Search */}
