@@ -4,7 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, GraduationCap, Search } from "lucide-react";
+import {
+    RefreshCw,
+    GraduationCap,
+    Search,
+    UserPlus,
+    UserMinus,
+    CheckCircle,
+    XCircle,
+    Clock,
+    AlertCircle,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 
@@ -14,21 +24,29 @@ interface Student {
     email: string;
     phone?: string;
     cpf?: string;
+    isActive: boolean;
+    telegram: {
+        status: "pending" | "active" | "removed" | "failed";
+        userId?: number;
+        username?: string;
+        addedAt?: string;
+        removedAt?: string;
+    };
     products: {
         productId: string;
         productName: string;
-        enrollmentDate: string;
-        checkedIn: boolean;
-        orderId: string;
+        enrolledAt: string;
+        status: "active" | "expired" | "refunded";
     }[];
-    totalPurchases: number;
-    totalCheckins: number;
+    lastSyncAt?: string;
+    createdAt: string;
 }
 
 export default function StudentsPage() {
     const [students, setStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
 
     useEffect(() => {
         fetchStudents();
@@ -37,7 +55,7 @@ export default function StudentsPage() {
     const fetchStudents = async () => {
         try {
             setLoading(true);
-            const response = await fetch("/api/kiwify/students");
+            const response = await fetch("/api/students");
             const data = await response.json();
             setStudents(data.students || []);
         } catch (error) {
@@ -47,6 +65,7 @@ export default function StudentsPage() {
         }
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const formatDate = (date: string) => {
         return new Date(date).toLocaleDateString("pt-BR", {
             day: "2-digit",
@@ -55,9 +74,119 @@ export default function StudentsPage() {
         });
     };
 
-    const filteredStudents = students.filter(student =>
-        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.email.toLowerCase().includes(searchTerm.toLowerCase())
+    const handleAddToTelegram = async (studentEmail: string) => {
+        try {
+            setActionLoading(studentEmail);
+            const response = await fetch("/api/telegram", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "add", studentEmail }),
+            });
+
+            const data = await response.json();
+
+            if (data.success && data.inviteLink) {
+                alert(
+                    `Link de convite gerado para o aluno!\n\nEnvie este link:\n${data.inviteLink}\n\n(Link copiado para a área de transferência)`
+                );
+                navigator.clipboard.writeText(data.inviteLink);
+                await fetchStudents();
+            } else {
+                alert(`Erro ao gerar link: ${data.error || "Erro desconhecido"}`);
+            }
+        } catch (error) {
+            console.error("Error adding to Telegram:", error);
+            alert("Erro ao adicionar aluno ao Telegram");
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleRemoveFromTelegram = async (studentEmail: string, telegramUserId?: number) => {
+        if (!telegramUserId) {
+            alert("Aluno não possui Telegram vinculado");
+            return;
+        }
+
+        if (!confirm("Tem certeza que deseja remover este aluno do grupo?")) {
+            return;
+        }
+
+        try {
+            setActionLoading(studentEmail);
+            const response = await fetch("/api/telegram", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "remove",
+                    studentEmail,
+                    telegramUserId,
+                    reason: "Removido manualmente pelo administrador",
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert("Aluno removido do grupo com sucesso!");
+                await fetchStudents();
+            } else {
+                alert(`Erro ao remover aluno: ${data.error || "Erro desconhecido"}`);
+            }
+        } catch (error) {
+            console.error("Error removing from Telegram:", error);
+            alert("Erro ao remover aluno do Telegram");
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const getTelegramStatusBadge = (status: string) => {
+        switch (status) {
+            case "active":
+                return (
+                    <Badge
+                        variant="default"
+                        className="bg-green-500">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Ativo
+                    </Badge>
+                );
+            case "pending":
+                return (
+                    <Badge variant="secondary">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Pendente
+                    </Badge>
+                );
+            case "removed":
+                return (
+                    <Badge variant="destructive">
+                        <XCircle className="w-3 h-3 mr-1" />
+                        Removido
+                    </Badge>
+                );
+            case "failed":
+                return (
+                    <Badge variant="destructive">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Erro
+                    </Badge>
+                );
+            default:
+                return (
+                    <Badge variant="outline">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Pendente
+                    </Badge>
+                );
+        }
+    };
+
+    const filteredStudents = students.filter(
+        (student) =>
+            student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            student.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -125,9 +254,9 @@ export default function StudentsPage() {
                                 <TableRow>
                                     <TableHead>Aluno</TableHead>
                                     <TableHead>Produtos</TableHead>
-                                    <TableHead>Total de Matrículas</TableHead>
-                                    <TableHead>Check-ins</TableHead>
-                                    <TableHead>Última Matrícula</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Telegram</TableHead>
+                                    <TableHead>Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -136,9 +265,7 @@ export default function StudentsPage() {
                                         <TableCell>
                                             <div>
                                                 <div className="font-medium">{student.name}</div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {student.email}
-                                                </div>
+                                                <div className="text-xs text-muted-foreground">{student.email}</div>
                                                 {student.phone && (
                                                     <div className="text-xs text-muted-foreground">
                                                         📞 {student.phone}
@@ -154,14 +281,20 @@ export default function StudentsPage() {
                                         <TableCell>
                                             <div className="flex flex-col gap-1">
                                                 {student.products.slice(0, 2).map((product, idx) => (
-                                                    <div key={idx} className="flex items-center gap-1">
-                                                        <Badge variant="outline" className="w-fit">
+                                                    <div
+                                                        key={idx}
+                                                        className="flex items-center gap-1">
+                                                        <Badge
+                                                            variant={
+                                                                product.status === "active" ? "default" : "outline"
+                                                            }
+                                                            className="w-fit">
                                                             {product.productName}
                                                         </Badge>
-                                                        {product.checkedIn && (
-                                                            <Badge variant="default" className="w-fit text-xs">
-                                                                ✓
-                                                            </Badge>
+                                                        {product.status !== "active" && (
+                                                            <span className="text-xs text-muted-foreground">
+                                                                ({product.status})
+                                                            </span>
                                                         )}
                                                     </div>
                                                 ))}
@@ -172,16 +305,55 @@ export default function StudentsPage() {
                                                 )}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="font-medium">
-                                            {student.totalPurchases}
+                                        <TableCell>
+                                            {student.isActive ? (
+                                                <Badge
+                                                    variant="default"
+                                                    className="bg-green-500">
+                                                    Ativo
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="secondary">Inativo</Badge>
+                                            )}
                                         </TableCell>
-                                        <TableCell className="font-medium text-green-600">
-                                            {student.totalCheckins} / {student.totalPurchases}
+                                        <TableCell>
+                                            <div className="flex flex-col gap-1">
+                                                {getTelegramStatusBadge(student.telegram.status)}
+                                                {student.telegram.username && (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        @{student.telegram.username}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </TableCell>
-                                        <TableCell className="text-sm text-muted-foreground">
-                                            {student.products.length > 0
-                                                ? formatDate(student.products[0].enrollmentDate)
-                                                : "-"}
+                                        <TableCell>
+                                            <div className="flex gap-2">
+                                                {student.telegram.status !== "active" && student.isActive && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => handleAddToTelegram(student.email)}
+                                                        disabled={actionLoading === student.email}>
+                                                        <UserPlus className="h-4 w-4 mr-1" />
+                                                        {actionLoading === student.email ? "..." : "Adicionar"}
+                                                    </Button>
+                                                )}
+                                                {student.telegram.status === "active" && student.telegram.userId && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="destructive"
+                                                        onClick={() =>
+                                                            handleRemoveFromTelegram(
+                                                                student.email,
+                                                                student.telegram.userId
+                                                            )
+                                                        }
+                                                        disabled={actionLoading === student.email}>
+                                                        <UserMinus className="h-4 w-4 mr-1" />
+                                                        {actionLoading === student.email ? "..." : "Remover"}
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
