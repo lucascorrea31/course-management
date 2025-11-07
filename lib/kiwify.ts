@@ -1,31 +1,79 @@
 /**
  * Cliente para API da Kiwify
- * Documentação: https://developers.kiwify.com.br/
+ * Documentação: https://docs.kiwify.com.br/api-reference
  */
 
-const KIWIFY_API_BASE = "https://public-api.kiwify.com.br/v1";
+const KIWIFY_API_BASE = "https://public-api.kiwify.com/v1";
+const KIWIFY_OAUTH_ENDPOINT = `${KIWIFY_API_BASE}/oauth/token`;
 
 interface KiwifyConfig {
-    apiKey: string;
-    account: string;
+    accountId: string;
+    clientId: string;
+    clientSecret: string;
+}
+
+interface TokenResponse {
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+    scope: string;
 }
 
 class KiwifyClient {
     private config: KiwifyConfig;
+    private accessToken: string | null = null;
+    private tokenExpiresAt: number = 0;
 
     constructor(config: KiwifyConfig) {
         this.config = config;
     }
 
+    /**
+     * Get access token via OAuth 2.0
+     */
+    private async getAccessToken(): Promise<string> {
+        // Return cached token if still valid (with 5 minute buffer)
+        const now = Date.now();
+        if (this.accessToken && this.tokenExpiresAt > now + 300000) {
+            return this.accessToken;
+        }
+
+        // Request new token
+        const params = new URLSearchParams();
+        params.append("client_id", this.config.clientId);
+        params.append("client_secret", this.config.clientSecret);
+
+        const response = await fetch(KIWIFY_OAUTH_ENDPOINT, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: params.toString(),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: response.statusText }));
+            throw new Error(`Kiwify OAuth Error: ${response.status} - ${error.message || "Authentication failed"}`);
+        }
+
+        const tokenData: TokenResponse = await response.json();
+
+        this.accessToken = tokenData.access_token;
+        this.tokenExpiresAt = Date.now() + (tokenData.expires_in * 1000);
+
+        return this.accessToken;
+    }
+
     private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
         const url = `${KIWIFY_API_BASE}${endpoint}`;
+        const token = await this.getAccessToken();
 
         const response = await fetch(url, {
             ...options,
             headers: {
                 "Content-Type": "application/json",
-                "x-kiwify-account": this.config.account,
-                "x-kiwify-key": this.config.apiKey,
+                "Authorization": `Bearer ${token}`,
+                "x-kiwify-account-id": this.config.accountId,
                 ...options.headers,
             },
         });
@@ -187,14 +235,15 @@ let kiwifyClient: KiwifyClient | null = null;
 
 export function getKiwifyClient(): KiwifyClient {
     if (!kiwifyClient) {
-        const apiKey = process.env.KIWIFY_API_KEY;
-        const account = process.env.KIWIFY_ACCOUNT;
+        const accountId = process.env.KIWIFY_ACCOUNT_ID;
+        const clientId = process.env.KIWIFY_CLIENT_ID;
+        const clientSecret = process.env.KIWIFY_CLIENT_SECRET;
 
-        if (!apiKey || !account) {
-            throw new Error("KIWIFY_API_KEY e KIWIFY_ACCOUNT devem estar definidos no .env.local");
+        if (!accountId || !clientId || !clientSecret) {
+            throw new Error("KIWIFY_ACCOUNT_ID, KIWIFY_CLIENT_ID and KIWIFY_CLIENT_SECRET must be defined in .env.local");
         }
 
-        kiwifyClient = new KiwifyClient({ apiKey, account });
+        kiwifyClient = new KiwifyClient({ accountId, clientId, clientSecret });
     }
 
     return kiwifyClient;

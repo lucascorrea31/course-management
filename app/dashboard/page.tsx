@@ -1,9 +1,39 @@
 import { auth } from "@/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, ShoppingCart, TrendingUp } from "lucide-react";
+import dbConnect from "@/lib/mongodb";
+import Product from "@/models/Product";
+import Sale from "@/models/Sale";
+import mongoose from "mongoose";
 
 export default async function DashboardPage() {
   const session = await auth();
+
+  // Fetch real data from database
+  await dbConnect();
+
+  // Convert to ObjectId for proper MongoDB query
+  const userObjectId = session?.user?.id ? new mongoose.Types.ObjectId(session.user.id) : null;
+
+  const productsCount = userObjectId ? await Product.countDocuments({ userId: userObjectId }) : 0;
+
+  const salesThisMonth = userObjectId ? await Sale.find({
+    userId: userObjectId,
+    createdAt: { $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
+  }) : [];
+
+  const totalSalesCount = salesThisMonth.length;
+
+  const totalRevenue = salesThisMonth
+    .filter(sale => sale.status === "paid")
+    .reduce((sum, sale) => sum + sale.amount, 0);
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(price / 100);
+  };
 
   return (
     <div className="space-y-6">
@@ -26,9 +56,9 @@ export default async function DashboardPage() {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{productsCount}</div>
               <p className="text-xs text-muted-foreground">
-                Sincronize seus produtos da Kiwify
+                {productsCount === 0 ? "Sincronize seus produtos da Kiwify" : "Produtos ativos"}
               </p>
             </CardContent>
           </Card>
@@ -41,7 +71,7 @@ export default async function DashboardPage() {
               <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{totalSalesCount}</div>
               <p className="text-xs text-muted-foreground">
                 Vendas este mês
               </p>
@@ -54,7 +84,7 @@ export default async function DashboardPage() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">R$ 0,00</div>
+              <div className="text-2xl font-bold">{formatPrice(totalRevenue)}</div>
               <p className="text-xs text-muted-foreground">
                 Receita total este mês
               </p>
