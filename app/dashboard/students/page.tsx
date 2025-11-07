@@ -86,10 +86,21 @@ export default function StudentsPage() {
             const data = await response.json();
 
             if (data.success && data.inviteLink) {
+                // Try to copy to clipboard
+                let copied = false;
+                try {
+                    await navigator.clipboard.writeText(data.inviteLink);
+                    copied = true;
+                } catch (clipboardError) {
+                    console.warn("Could not copy to clipboard:", clipboardError);
+                }
+
+                // Show alert with or without clipboard confirmation
                 alert(
-                    `Link de convite gerado para o aluno!\n\nEnvie este link:\n${data.inviteLink}\n\n(Link copiado para a área de transferência)`
+                    `Link de convite gerado para o aluno!\n\nEnvie este link:\n${data.inviteLink}${
+                        copied ? "\n\n✅ Link copiado para a área de transferência" : ""
+                    }`
                 );
-                navigator.clipboard.writeText(data.inviteLink);
                 await fetchStudents();
             } else {
                 alert(`Erro ao gerar link: ${data.error || "Erro desconhecido"}`);

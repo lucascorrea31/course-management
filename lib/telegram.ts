@@ -6,6 +6,9 @@ const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || "");
 // Chat ID where students will be managed (group or supergroup)
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID || "";
 
+// Optional: Permanent invite link (if bot doesn't have admin permissions)
+const PERMANENT_INVITE_LINK = process.env.TELEGRAM_INVITE_LINK || "";
+
 export interface TelegramUser {
   id: number;
   username?: string;
@@ -37,6 +40,8 @@ export interface GroupMember {
 /**
  * Generate an invite link for the Telegram group
  * This link can be sent to students to join the group
+ *
+ * Falls back to permanent invite link if bot doesn't have admin permissions
  */
 export async function generateInviteLink(
   expiresInSeconds?: number,
@@ -47,14 +52,55 @@ export async function generateInviteLink(
       throw new Error("TELEGRAM_CHAT_ID is not configured");
     }
 
-    const inviteLink = await bot.telegram.createChatInviteLink(CHAT_ID, {
-      expire_date: expiresInSeconds
-        ? Math.floor(Date.now() / 1000) + expiresInSeconds
-        : undefined,
-      member_limit: memberLimit,
-    });
+    // Try to create a dynamic invite link (requires admin permissions)
+    try {
+      const inviteLink = await bot.telegram.createChatInviteLink(CHAT_ID, {
+        expire_date: expiresInSeconds
+          ? Math.floor(Date.now() / 1000) + expiresInSeconds
+          : undefined,
+        member_limit: memberLimit,
+      });
 
-    return inviteLink.invite_link;
+      return inviteLink.invite_link;
+    } catch (adminError: any) {
+      // If bot doesn't have admin permissions, try fallback options
+      console.warn("Bot doesn't have admin permissions, trying fallback options");
+
+      // Option 1: Use configured permanent invite link from env
+      if (PERMANENT_INVITE_LINK) {
+        console.log("Using permanent invite link from TELEGRAM_INVITE_LINK env variable");
+        return PERMANENT_INVITE_LINK;
+      }
+
+      // Option 2: Try to get invite link from chat info
+      try {
+        const chat = await bot.telegram.getChat(CHAT_ID);
+
+        if ('invite_link' in chat && chat.invite_link) {
+          console.log("Using invite link from chat info");
+          return chat.invite_link;
+        }
+      } catch (chatError) {
+        console.warn("Could not get chat info:", chatError);
+      }
+
+      // Option 3: Try to export permanent link (also requires admin)
+      try {
+        const permanentLink = await bot.telegram.exportChatInviteLink(CHAT_ID);
+        console.log("Successfully exported permanent invite link");
+        return permanentLink;
+      } catch (exportError) {
+        console.warn("Could not export invite link:", exportError);
+      }
+
+      // All options failed
+      throw new Error(
+        `Cannot generate invite link. Please either:\n` +
+        `1. Make the bot an admin with 'Invite users via link' permission, OR\n` +
+        `2. Set TELEGRAM_INVITE_LINK in your .env with the group's permanent invite link\n\n` +
+        `Original error: ${adminError.message || adminError}`
+      );
+    }
   } catch (error) {
     console.error("Error generating invite link:", error);
     throw error;
