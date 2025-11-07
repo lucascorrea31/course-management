@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Home, Package, ShoppingCart } from "lucide-react";
+import { Home, Package, ShoppingCart, GraduationCap } from "lucide-react";
 
 const navItems = [
   {
@@ -21,6 +21,11 @@ const navItems = [
     title: "Vendas",
     href: "/dashboard/sales",
     icon: ShoppingCart,
+  },
+  {
+    title: "Alunos",
+    href: "/dashboard/students",
+    icon: GraduationCap,
   },
 ];
 

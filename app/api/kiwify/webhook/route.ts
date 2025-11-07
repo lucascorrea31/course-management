@@ -19,10 +19,6 @@ interface KiwifySaleData {
   approved_at?: string;
 }
 
-interface KiwifySubscriptionData {
-  id: string;
-}
-
 /**
  * Webhook to receive Kiwify events
  *
@@ -31,7 +27,6 @@ interface KiwifySubscriptionData {
  * - sale.refused: Sale refused
  * - sale.refunded: Sale refunded
  * - sale.chargeback: Chargeback
- * - subscription.canceled: Subscription canceled
  *
  * Configure this endpoint in Kiwify:
  * https://your-domain.com/api/kiwify/webhook
@@ -57,10 +52,6 @@ export async function POST(request: NextRequest) {
             case "sale.refunded":
             case "sale.chargeback":
                 await handleSaleEvent(event, data);
-                break;
-
-            case "subscription.canceled":
-                await handleSubscriptionEvent(event, data);
                 break;
 
             default:
@@ -110,18 +101,6 @@ async function handleSaleEvent(event: string, data: KiwifySaleData) {
         console.log(`Sale ${data.id} processed with status: ${status}`);
     } catch (error) {
         console.error("Error processing sale event:", error);
-        throw error;
-    }
-}
-
-async function handleSubscriptionEvent(_event: string, data: KiwifySubscriptionData) {
-    try {
-        console.log(`Subscription ${data.id} canceled`);
-
-        // TODO: Implement subscription logic
-        // Can create a Subscription model if needed
-    } catch (error) {
-        console.error("Error processing subscription event:", error);
         throw error;
     }
 }

@@ -187,13 +187,21 @@ class KiwifyClient {
     }
 
     /**
-     * Lista assinaturas ativas
+     * Lista participantes de um evento/produto
      */
-    async getSubscriptions(params?: {
-        product_id?: string;
-        status?: "active" | "canceled" | "suspended";
-        page?: number;
-        limit?: number;
+    async getEventParticipants(productId: string, params?: {
+        checked_in?: boolean;
+        phone?: string;
+        cpf?: string;
+        external_id?: string;
+        order_id?: string;
+        batch_id?: string;
+        created_at_start_date?: string;
+        created_at_end_date?: string;
+        updated_at_start_date?: string;
+        updated_at_end_date?: string;
+        page_size?: number;
+        page_number?: number;
     }) {
         const searchParams = new URLSearchParams();
         if (params) {
@@ -204,27 +212,32 @@ class KiwifyClient {
             });
         }
 
-        const endpoint = `/subscriptions${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+        const endpoint = `/events/${productId}/participants${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
 
         return this.request<{
-            subscriptions: Array<{
-                id: string;
-                product_id: string;
-                product_name: string;
-                customer: {
+            count: number;
+            page_number: number;
+            page_size: number;
+            data: {
+                max_tickets: number;
+                available: number;
+                issued_tickets: number;
+                sold_tickets: number;
+                total_checkin: number;
+                participants: Array<{
+                    id: string;
+                    external_id?: string;
+                    batch_id?: string;
+                    batch_name?: string;
                     name: string;
                     email: string;
-                };
-                status: string;
-                amount: number;
-                next_charge_date: string;
-                created_at: string;
-            }>;
-            pagination: {
-                page: number;
-                limit: number;
-                total: number;
-                total_pages: number;
+                    cpf?: string;
+                    phone?: string;
+                    order_id: string;
+                    checkin_at?: string;
+                    created_at: string;
+                    updated_at: string;
+                }>;
             };
         }>(endpoint);
     }

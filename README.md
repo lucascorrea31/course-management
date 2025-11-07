@@ -192,7 +192,6 @@ To receive real-time sale notifications:
    - ✅ Sale approved
    - ✅ Sale refunded
    - ✅ Sale chargeback
-   - ✅ Subscription created/cancelled (coming soon)
 
 ## Telegram Bot Setup
 
@@ -253,7 +252,6 @@ To receive real-time sale notifications:
 
 ## Features in Development
 
-- [ ] Subscription management
 - [ ] Automated Telegram group management
 - [ ] Student verification system
 - [ ] Advanced analytics and reporting
