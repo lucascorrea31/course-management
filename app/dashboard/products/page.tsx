@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RefreshCw, Package } from "lucide-react";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 interface Product {
     _id: string;
@@ -51,7 +52,9 @@ export default function ProductsPage() {
             }
 
             const data = await response.json();
-            alert(data.message);
+            toast.success("Produtos sincronizados!", {
+                description: data.message,
+            });
             fetchProducts();
         } catch (error: unknown) {
             let errorMessage = "Erro ao sincronizar produtos";
@@ -62,7 +65,9 @@ export default function ProductsPage() {
                 errorMessage = error;
             }
 
-            alert(errorMessage);
+            toast.error("Erro ao sincronizar", {
+                description: errorMessage,
+            });
         } finally {
             setSyncing(false);
         }

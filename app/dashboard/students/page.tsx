@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 interface Student {
     id: string;
@@ -95,19 +96,28 @@ export default function StudentsPage() {
                     console.warn("Could not copy to clipboard:", clipboardError);
                 }
 
-                // Show alert with or without clipboard confirmation
-                alert(
-                    `Link de convite gerado para o aluno!\n\nEnvie este link:\n${data.inviteLink}${
-                        copied ? "\n\n✅ Link copiado para a área de transferência" : ""
-                    }`
-                );
+                // Show success toast
+                toast.success("Link de convite gerado!", {
+                    description: (
+                        <div className="space-y-2">
+                            <p>Envie este link ao aluno:</p>
+                            <code className="block p-2 bg-muted rounded text-xs break-all text-foreground">
+                                {data.inviteLink}
+                            </code>
+                            {copied && <p className="text-green-600">✅ Link copiado para a área de transferência</p>}
+                        </div>
+                    ),
+                    duration: 8000,
+                });
                 await fetchStudents();
             } else {
-                alert(`Erro ao gerar link: ${data.error || "Erro desconhecido"}`);
+                toast.error("Erro ao gerar link", {
+                    description: data.error || "Erro desconhecido",
+                });
             }
         } catch (error) {
             console.error("Error adding to Telegram:", error);
-            alert("Erro ao adicionar aluno ao Telegram");
+            toast.error("Erro ao adicionar aluno ao Telegram");
         } finally {
             setActionLoading(null);
         }
@@ -115,7 +125,7 @@ export default function StudentsPage() {
 
     const handleRemoveFromTelegram = async (studentEmail: string, telegramUserId?: number) => {
         if (!telegramUserId) {
-            alert("Aluno não possui Telegram vinculado");
+            toast.error("Aluno não possui Telegram vinculado");
             return;
         }
 
@@ -139,14 +149,16 @@ export default function StudentsPage() {
             const data = await response.json();
 
             if (data.success) {
-                alert("Aluno removido do grupo com sucesso!");
+                toast.success("Aluno removido do grupo com sucesso!");
                 await fetchStudents();
             } else {
-                alert(`Erro ao remover aluno: ${data.error || "Erro desconhecido"}`);
+                toast.error("Erro ao remover aluno", {
+                    description: data.error || "Erro desconhecido",
+                });
             }
         } catch (error) {
             console.error("Error removing from Telegram:", error);
-            alert("Erro ao remover aluno do Telegram");
+            toast.error("Erro ao remover aluno do Telegram");
         } finally {
             setActionLoading(null);
         }

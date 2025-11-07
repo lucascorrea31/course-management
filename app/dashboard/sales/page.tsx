@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RefreshCw, ShoppingCart } from "lucide-react";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 interface Sale {
     _id: string;
@@ -69,7 +70,9 @@ export default function SalesPage() {
             }
 
             const data = await response.json();
-            alert(data.message);
+            toast.success("Vendas sincronizadas!", {
+                description: data.message,
+            });
             fetchSales();
         } catch (error: unknown) {
             let errorMessage = "Erro ao sincronizar vendas";
@@ -78,7 +81,9 @@ export default function SalesPage() {
             } else if (typeof error === "string") {
                 errorMessage = error;
             }
-            alert(errorMessage);
+            toast.error("Erro ao sincronizar", {
+                description: errorMessage,
+            });
         } finally {
             setSyncing(false);
         }
