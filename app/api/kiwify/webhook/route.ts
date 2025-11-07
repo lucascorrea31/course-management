@@ -7,21 +7,33 @@ import { addStudentToGroup, removeStudentFromGroup } from "@/lib/telegram";
 import { Model } from "mongoose";
 
 interface KiwifyCustomer {
+    id?: string;
     name: string;
     email: string;
     phone?: string;
+    mobile?: string;
+    cpf?: string;
+    cnpj?: string;
+    instagram?: string;
+    country?: string;
+    address?: {
+        street?: string;
+        number?: string;
+        complement?: string;
+        neighborhood?: string;
+        city?: string;
+        state?: string;
+        zipcode?: string;
+    };
 }
 
 interface KiwifySaleData {
     id: string;
     reference?: string;
-    product?: {
+    product: {
         id: string;
         name: string;
     };
-    // Legacy fields for backward compatibility
-    product_id?: string;
-    product_name?: string;
     customer: KiwifyCustomer;
     amount?: number;
     net_amount?: number;
@@ -29,6 +41,8 @@ interface KiwifySaleData {
     payment_method?: string;
     installments?: number;
     approved_at?: string;
+    created_at?: string;
+    updated_at?: string;
 }
 
 /**
@@ -79,12 +93,8 @@ export async function POST(request: NextRequest) {
 
 async function handleSaleEvent(event: string, data: KiwifySaleData) {
     try {
-        // Support both new and legacy product format
-        const productId = data.product?.id || data.product_id;
-        const productName = data.product?.name || data.product_name;
-
         // Find local product
-        const product = await Product.findOne({ kiwifyId: productId });
+        const product = await Product.findOne({ kiwifyId: data.product.id });
 
         // Determine status based on event
         let status: "paid" | "refused" | "refunded" | "chargeback" | "pending" = "pending";
@@ -99,11 +109,11 @@ async function handleSaleEvent(event: string, data: KiwifySaleData) {
             {
                 kiwifyId: data.id,
                 productId: product?._id,
-                productName: productName || "Unknown Product",
+                productName: data.product.name,
                 customer: {
-                    name: data.customer?.name || "N/A",
-                    email: data.customer?.email || "N/A",
-                    phone: data.customer?.phone,
+                    name: data.customer.name,
+                    email: data.customer.email,
+                    phone: data.customer.mobile || data.customer.phone,
                 },
                 status,
                 amount: data.net_amount || data.amount || 0,
@@ -121,7 +131,6 @@ async function handleSaleEvent(event: string, data: KiwifySaleData) {
 
         // Handle Telegram group management based on sale status
         const customerEmail = data.customer?.email?.toLowerCase().trim();
-        const customerName = data.customer?.name || "Student";
 
         if (!customerEmail) {
             console.warn("No customer email provided, skipping Telegram integration");
@@ -130,7 +139,7 @@ async function handleSaleEvent(event: string, data: KiwifySaleData) {
 
         // Process Telegram actions based on event
         if (event === "sale.approved" && product?.userId) {
-            await handleStudentAdded(customerEmail, customerName, data.customer?.phone, product);
+            await handleStudentAdded(data, product);
         } else if (event === "sale.refunded" || event === "sale.chargeback") {
             await handleStudentRemoved(customerEmail, event === "sale.refunded" ? "refunded" : "chargeback");
         }
@@ -145,62 +154,88 @@ async function handleSaleEvent(event: string, data: KiwifySaleData) {
  * Creates/updates student record and generates Telegram invite link
  */
 async function handleStudentAdded(
-    email: string,
-    name: string,
-    phone: string | undefined,
+    data: KiwifySaleData,
     product: typeof Product extends Model<infer T> ? T : never
 ) {
     try {
+        const email = data.customer.email.toLowerCase().trim();
+        const name = data.customer.name;
+
         // Find or create student
         let student = await Student.findOne({
             email: email,
             userId: product.userId,
         });
 
+        const studentData = {
+            userId: product.userId,
+            kiwifyCustomerId: data.customer.id,
+            name,
+            email,
+            phone: data.customer.mobile || data.customer.phone,
+            cpf: data.customer.cpf,
+            cnpj: data.customer.cnpj,
+            instagram: data.customer.instagram,
+            country: data.customer.country,
+            address: data.customer.address
+                ? {
+                      street: data.customer.address.street,
+                      number: data.customer.address.number,
+                      complement: data.customer.address.complement,
+                      neighborhood: data.customer.address.neighborhood,
+                      city: data.customer.address.city,
+                      state: data.customer.address.state,
+                      zipcode: data.customer.address.zipcode,
+                  }
+                : undefined,
+            isActive: true,
+            lastSyncAt: new Date(),
+        };
+
+        const productEnrollment = {
+            productId: product._id as any,
+            productName: product.name,
+            enrolledAt: new Date(data.created_at || Date.now()),
+            status: "active" as const,
+            saleId: data.id,
+            saleReference: data.reference,
+            paymentMethod: data.payment_method,
+            amount: data.net_amount,
+        };
+
         if (student) {
             // Update existing student - add product if not already enrolled
-            const productExists = student.products.some((p) => p.productId.toString() === product._id.toString());
+            const productExists = student.products.some(
+                (p) => p.saleId === data.id || p.productId.toString() === String(product._id)
+            );
 
             if (!productExists) {
-                student.products.push({
-                    productId: product._id,
-                    productName: product.name,
-                    enrolledAt: new Date(),
-                    status: "active",
-                });
+                student.products.push(productEnrollment);
             } else {
                 // Update product status to active
                 const productIndex = student.products.findIndex(
-                    (p) => p.productId.toString() === product._id.toString()
+                    (p) => p.saleId === data.id || p.productId.toString() === String(product._id)
                 );
                 if (productIndex !== -1) {
                     student.products[productIndex].status = "active";
+                    student.products[productIndex].saleId = data.id;
+                    student.products[productIndex].saleReference = data.reference;
+                    student.products[productIndex].paymentMethod = data.payment_method;
+                    student.products[productIndex].amount = data.net_amount;
                 }
             }
 
-            student.isActive = true;
-            student.lastSyncAt = new Date();
+            // Update student data with latest information
+            Object.assign(student, studentData);
             await student.save();
         } else {
             // Create new student
             student = await Student.create({
-                userId: product.userId,
-                name,
-                email,
-                phone,
-                products: [
-                    {
-                        productId: product._id,
-                        productName: product.name,
-                        enrolledAt: new Date(),
-                        status: "active",
-                    },
-                ],
-                isActive: true,
+                ...studentData,
+                products: [productEnrollment],
                 telegram: {
                     status: "pending",
                 },
-                lastSyncAt: new Date(),
             });
         }
 

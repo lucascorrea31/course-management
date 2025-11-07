@@ -2,10 +2,23 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IStudent extends Document {
   userId: mongoose.Types.ObjectId;
+  kiwifyCustomerId?: string; // ID do cliente na Kiwify
   name: string;
   email: string;
   phone?: string;
   cpf?: string;
+  cnpj?: string;
+  instagram?: string;
+  country?: string;
+  address?: {
+    street?: string;
+    number?: string;
+    complement?: string;
+    neighborhood?: string;
+    city?: string;
+    state?: string;
+    zipcode?: string;
+  };
   telegram?: {
     userId?: number;
     username?: string;
@@ -18,6 +31,10 @@ export interface IStudent extends Document {
     productName: string;
     enrolledAt: Date;
     status: "active" | "expired" | "refunded";
+    saleId?: string; // Kiwify sale ID
+    saleReference?: string; // Kiwify sale reference
+    paymentMethod?: string;
+    amount?: number;
   }>;
   isActive: boolean;
   lastSyncAt?: Date;
@@ -31,6 +48,10 @@ const StudentSchema = new Schema<IStudent>(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
+    },
+    kiwifyCustomerId: {
+      type: String,
+      trim: true,
     },
     name: {
       type: String,
@@ -49,6 +70,27 @@ const StudentSchema = new Schema<IStudent>(
     cpf: {
       type: String,
       trim: true,
+    },
+    cnpj: {
+      type: String,
+      trim: true,
+    },
+    instagram: {
+      type: String,
+      trim: true,
+    },
+    country: {
+      type: String,
+      trim: true,
+    },
+    address: {
+      street: { type: String, trim: true },
+      number: { type: String, trim: true },
+      complement: { type: String, trim: true },
+      neighborhood: { type: String, trim: true },
+      city: { type: String, trim: true },
+      state: { type: String, trim: true },
+      zipcode: { type: String, trim: true },
     },
     telegram: {
       userId: {
@@ -88,6 +130,21 @@ const StudentSchema = new Schema<IStudent>(
           type: String,
           enum: ["active", "expired", "refunded"],
           default: "active",
+        },
+        saleId: {
+          type: String,
+          trim: true,
+        },
+        saleReference: {
+          type: String,
+          trim: true,
+        },
+        paymentMethod: {
+          type: String,
+          trim: true,
+        },
+        amount: {
+          type: Number,
         },
       },
     ],
