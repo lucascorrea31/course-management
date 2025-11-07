@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
                                 };
 
                                 const productEnrollment = {
-                                    productId: product._id,
+                                    productId: product._id as any,
                                     productName: product.name,
                                     enrolledAt: new Date(sale.created_at),
                                     status: "active" as const,
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
                                     const productExists = student.products.some(
                                         (p) =>
                                             p.saleId === sale.id ||
-                                            (p.productId.toString() === product._id.toString() &&
+                                            (p.productId.toString() === String(product._id) &&
                                                 p.enrolledAt.getTime() === new Date(sale.created_at).getTime())
                                     );
 
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
                                         const productIndex = student.products.findIndex(
                                             (p) =>
                                                 p.saleId === sale.id ||
-                                                (p.productId.toString() === product._id.toString() &&
+                                                (p.productId.toString() === String(product._id) &&
                                                     p.enrolledAt.getTime() === new Date(sale.created_at).getTime())
                                         );
                                         if (productIndex !== -1) {
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
                                     { kiwifyId: sale.id },
                                     {
                                         kiwifyId: sale.id,
-                                        productId: product._id,
+                                        productId: product._id as any,
                                         productName: product.name,
                                         customer: {
                                             name: sale.customer.name,
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
                                         netAmount: sale.net_amount,
                                         commission: 0,
                                         paymentMethod: sale.payment_method,
-                                        userId: user._id,
+                                        userId: user._id as any,
                                         approvedAt: new Date(sale.updated_at),
                                     },
                                     { upsert: true, new: true }
