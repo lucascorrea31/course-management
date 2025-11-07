@@ -59,7 +59,7 @@ class KiwifyClient {
         const tokenData: TokenResponse = await response.json();
 
         this.accessToken = tokenData.access_token;
-        this.tokenExpiresAt = Date.now() + (tokenData.expires_in * 1000);
+        this.tokenExpiresAt = Date.now() + tokenData.expires_in * 1000;
 
         return this.accessToken;
     }
@@ -72,7 +72,7 @@ class KiwifyClient {
             ...options,
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`,
+                Authorization: `Bearer ${token}`,
                 "x-kiwify-account-id": this.config.accountId,
                 ...options.headers,
             },
@@ -141,26 +141,49 @@ class KiwifyClient {
         const endpoint = `/sales${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
 
         return this.request<{
-            sales: Array<{
+            data: Array<{
                 id: string;
-                product_id: string;
-                product_name: string;
+                reference: string;
+                type: string;
+                product: {
+                    id: string;
+                    name: string;
+                };
+                shipping?: {
+                    id: string;
+                    name: string;
+                    price: number;
+                };
                 customer: {
+                    id: string;
                     name: string;
                     email: string;
-                    phone?: string;
+                    cpf?: string;
+                    cnpj?: string;
+                    mobile?: string;
+                    instagram?: string;
+                    country?: string;
+                    address?: {
+                        street: string;
+                        number: string;
+                        complement?: string;
+                        neighborhood: string;
+                        city: string;
+                        state: string;
+                        zipcode: string;
+                    };
                 };
                 status: string;
-                amount: number;
-                commission: number;
+                payment_method: string;
+                net_amount: number;
+                currency: string;
                 created_at: string;
-                approved_at?: string;
+                updated_at: string;
             }>;
             pagination: {
-                page: number;
-                limit: number;
-                total: number;
-                total_pages: number;
+                count: number;
+                page_number: number;
+                page_size: number;
             };
         }>(endpoint);
     }
@@ -189,20 +212,23 @@ class KiwifyClient {
     /**
      * Lista participantes de um evento/produto
      */
-    async getEventParticipants(productId: string, params?: {
-        checked_in?: boolean;
-        phone?: string;
-        cpf?: string;
-        external_id?: string;
-        order_id?: string;
-        batch_id?: string;
-        created_at_start_date?: string;
-        created_at_end_date?: string;
-        updated_at_start_date?: string;
-        updated_at_end_date?: string;
-        page_size?: number;
-        page_number?: number;
-    }) {
+    async getEventParticipants(
+        productId: string,
+        params?: {
+            checked_in?: boolean;
+            phone?: string;
+            cpf?: string;
+            external_id?: string;
+            order_id?: string;
+            batch_id?: string;
+            created_at_start_date?: string;
+            created_at_end_date?: string;
+            updated_at_start_date?: string;
+            updated_at_end_date?: string;
+            page_size?: number;
+            page_number?: number;
+        }
+    ) {
         const searchParams = new URLSearchParams();
         if (params) {
             Object.entries(params).forEach(([key, value]) => {
@@ -212,7 +238,9 @@ class KiwifyClient {
             });
         }
 
-        const endpoint = `/events/${productId}/participants${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+        const endpoint = `/events/${productId}/participants${
+            searchParams.toString() ? `?${searchParams.toString()}` : ""
+        }`;
 
         return this.request<{
             count: number;
@@ -253,7 +281,9 @@ export function getKiwifyClient(): KiwifyClient {
         const clientSecret = process.env.KIWIFY_CLIENT_SECRET;
 
         if (!accountId || !clientId || !clientSecret) {
-            throw new Error("KIWIFY_ACCOUNT_ID, KIWIFY_CLIENT_ID and KIWIFY_CLIENT_SECRET must be defined in .env.local");
+            throw new Error(
+                "KIWIFY_ACCOUNT_ID, KIWIFY_CLIENT_ID and KIWIFY_CLIENT_SECRET must be defined in .env.local"
+            );
         }
 
         kiwifyClient = new KiwifyClient({ accountId, clientId, clientSecret });

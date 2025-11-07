@@ -14,11 +14,20 @@ interface KiwifyCustomer {
 
 interface KiwifySaleData {
     id: string;
-    product_id: string;
-    product_name: string;
+    reference?: string;
+    product?: {
+        id: string;
+        name: string;
+    };
+    // Legacy fields for backward compatibility
+    product_id?: string;
+    product_name?: string;
     customer: KiwifyCustomer;
-    amount: number;
-    commission: number;
+    amount?: number;
+    net_amount?: number;
+    commission?: number;
+    payment_method?: string;
+    installments?: number;
     approved_at?: string;
 }
 
@@ -70,8 +79,12 @@ export async function POST(request: NextRequest) {
 
 async function handleSaleEvent(event: string, data: KiwifySaleData) {
     try {
+        // Support both new and legacy product format
+        const productId = data.product?.id || data.product_id;
+        const productName = data.product?.name || data.product_name;
+
         // Find local product
-        const product = await Product.findOne({ kiwifyId: data.product_id });
+        const product = await Product.findOne({ kiwifyId: productId });
 
         // Determine status based on event
         let status: "paid" | "refused" | "refunded" | "chargeback" | "pending" = "pending";
@@ -86,15 +99,18 @@ async function handleSaleEvent(event: string, data: KiwifySaleData) {
             {
                 kiwifyId: data.id,
                 productId: product?._id,
-                productName: data.product_name,
+                productName: productName || "Unknown Product",
                 customer: {
                     name: data.customer?.name || "N/A",
                     email: data.customer?.email || "N/A",
                     phone: data.customer?.phone,
                 },
                 status,
-                amount: data.amount || 0,
+                amount: data.net_amount || data.amount || 0,
+                netAmount: data.net_amount,
                 commission: data.commission || 0,
+                paymentMethod: data.payment_method,
+                installments: data.installments,
                 userId: product?.userId,
                 approvedAt: status === "paid" ? new Date() : undefined,
             },

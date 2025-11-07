@@ -52,6 +52,7 @@ export default function SalesPage() {
             // Sync sales from last 30 days
             const endDate = new Date();
             const startDate = new Date();
+            endDate.setDate(endDate.getDate() + 1);
             startDate.setDate(startDate.getDate() - 30);
 
             const response = await fetch("/api/kiwify/sales", {

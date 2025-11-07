@@ -11,7 +11,10 @@ export interface ISale extends Document {
   };
   status: "paid" | "refused" | "refunded" | "chargeback" | "pending";
   amount: number;
+  netAmount?: number;
   commission: number;
+  paymentMethod?: string;
+  installments?: number;
   userId: mongoose.Types.ObjectId;
   approvedAt?: Date;
   createdAt: Date;
@@ -55,9 +58,18 @@ const SaleSchema = new Schema<ISale>(
       type: Number,
       required: true,
     },
+    netAmount: {
+      type: Number,
+    },
     commission: {
       type: Number,
       default: 0,
+    },
+    paymentMethod: {
+      type: String,
+    },
+    installments: {
+      type: Number,
     },
     userId: {
       type: Schema.Types.ObjectId,
