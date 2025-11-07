@@ -64,7 +64,7 @@ export default function LoginPage() {
                     }
                 }
             }
-        } catch (err) {
+        } catch (_err) {
             setError("Error processing request");
         } finally {
             setLoading(false);

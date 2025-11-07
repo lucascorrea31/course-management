@@ -17,7 +17,7 @@ declare global {
   var mongoose: MongooseCache | undefined;
 }
 
-let cached: MongooseCache = globalThis.mongoose || { conn: null, promise: null };
+const cached: MongooseCache = globalThis.mongoose || { conn: null, promise: null };
 
 if (!globalThis.mongoose) {
   globalThis.mongoose = cached;

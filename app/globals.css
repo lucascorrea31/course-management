@@ -1,9 +1,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @import "tailwindcss";
+@import "tailwindcss/preflight";
 
-@tailwind base;
-@tailwind components;
 @tailwind utilities;
 
 @layer base {
