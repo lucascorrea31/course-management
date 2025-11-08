@@ -29,7 +29,10 @@ export async function GET(_request: NextRequest) {
             console.log("Sample product userId:", allProducts[0].userId, "Type:", typeof allProducts[0].userId);
         }
 
-        const products = await Product.find({ userId: userObjectId }).sort({
+        const products = await Product.find({
+            userId: userObjectId,
+            platform: "kiwify"
+        }).sort({
             createdAt: -1,
         });
 
@@ -76,6 +79,7 @@ export async function POST(_request: NextRequest) {
             const product = await Product.findOneAndUpdate(
                 { kiwifyId: kProduct.id },
                 {
+                    platform: "kiwify",
                     kiwifyId: kProduct.id,
                     name: kProduct.name,
                     description: kProduct.description,

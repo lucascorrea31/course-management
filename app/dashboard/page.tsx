@@ -1,113 +1,132 @@
 import { auth } from "@/auth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, ShoppingCart, TrendingUp } from "lucide-react";
-import dbConnect from "@/lib/mongodb";
-import Product from "@/models/Product";
-import Sale from "@/models/Sale";
-import mongoose from "mongoose";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
 
 export default async function DashboardPage() {
   const session = await auth();
 
-  // Fetch real data from database
-  await dbConnect();
-
-  // Convert to ObjectId for proper MongoDB query
-  const userObjectId = session?.user?.id ? new mongoose.Types.ObjectId(session.user.id) : null;
-
-  const productsCount = userObjectId ? await Product.countDocuments({ userId: userObjectId }) : 0;
-
-  const salesThisMonth = userObjectId ? await Sale.find({
-    userId: userObjectId,
-    createdAt: { $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
-  }) : [];
-
-  const totalSalesCount = salesThisMonth.length;
-
-  const totalRevenue = salesThisMonth
-    .filter(sale => sale.status === "paid")
-    .reduce((sum, sale) => sum + sale.amount, 0);
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(price / 100);
-  };
+  const integrations = [
+    {
+      id: "kiwify",
+      name: "Kiwify",
+      description: "Gerencie seus produtos, vendas e alunos da Kiwify",
+      status: "active",
+      href: "/dashboard/kiwify",
+      icon: "🥝",
+      features: [
+        "Sincronização de produtos",
+        "Gerenciamento de vendas",
+        "Controle de alunos",
+        "Integração com Telegram",
+      ],
+    },
+    {
+      id: "hotmart",
+      name: "Hotmart",
+      description: "Gerencie seus produtos e vendas da Hotmart",
+      status: "active",
+      href: "/dashboard/hotmart",
+      icon: "🔥",
+      features: [
+        "Sincronização de produtos",
+        "Autenticação OAuth 2.0",
+        "Gerenciamento de vendas (em breve)",
+        "Webhooks automáticos (em breve)",
+      ],
+    },
+  ];
 
   return (
     <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">
-            Olá, {session?.user?.name}!
-          </h2>
-          <p className="text-muted-foreground">
-            Bem-vindo ao seu dashboard de gerenciamento
-          </p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total de Produtos
-              </CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{productsCount}</div>
-              <p className="text-xs text-muted-foreground">
-                {productsCount === 0 ? "Sincronize seus produtos da Kiwify" : "Produtos ativos"}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total de Vendas
-              </CardTitle>
-              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalSalesCount}</div>
-              <p className="text-xs text-muted-foreground">
-                Vendas este mês
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Receita</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatPrice(totalRevenue)}</div>
-              <p className="text-xs text-muted-foreground">
-                Receita total este mês
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Primeiros Passos</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Para começar a usar o sistema:
-            </p>
-            <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-              <li>Vá para a página de Produtos e sincronize seus produtos da Kiwify</li>
-              <li>Configure o webhook da Kiwify para receber vendas em tempo real</li>
-              <li>Acompanhe suas vendas na página de Vendas</li>
-            </ol>
-          </CardContent>
-        </Card>
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">
+          Olá, {session?.user?.name}!
+        </h2>
+        <p className="text-muted-foreground">
+          Selecione uma integração para gerenciar seus produtos e alunos
+        </p>
       </div>
+
+      {/* Integrations Grid */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {integrations.map((integration) => (
+          <Link
+            key={integration.id}
+            href={integration.href}
+            className={`group ${integration.status === "coming_soon" ? "pointer-events-none" : ""}`}
+          >
+            <Card className={`transition-all hover:shadow-lg ${integration.status === "coming_soon" ? "opacity-60" : "hover:border-primary"}`}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="text-4xl">{integration.icon}</div>
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        {integration.name}
+                        {integration.status === "active" && (
+                          <Badge variant="default" className="bg-green-500">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Ativo
+                          </Badge>
+                        )}
+                        {integration.status === "coming_soon" && (
+                          <Badge variant="secondary">
+                            Em Breve
+                          </Badge>
+                        )}
+                      </CardTitle>
+                      <CardDescription className="mt-1.5">
+                        {integration.description}
+                      </CardDescription>
+                    </div>
+                  </div>
+                  {integration.status === "active" && (
+                    <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Recursos disponíveis:
+                  </p>
+                  <ul className="grid gap-2">
+                    {integration.features.map((feature, index) => (
+                      <li
+                        key={index}
+                        className="flex items-center gap-2 text-sm"
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+
+      {/* Info Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Como usar</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Este sistema permite gerenciar múltiplas plataformas de vendas em um único lugar:
+          </p>
+          <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+            <li>Clique em uma integração ativa para acessar o dashboard</li>
+            <li>Configure suas credenciais de API nas páginas de cada integração</li>
+            <li>Sincronize seus dados e comece a gerenciar seus produtos e alunos</li>
+            <li>Configure webhooks para receber atualizações em tempo real</li>
+          </ol>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

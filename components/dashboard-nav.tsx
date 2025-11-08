@@ -4,28 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Home, Package, ShoppingCart, GraduationCap } from "lucide-react";
+import { Home } from "lucide-react";
 
 const navItems = [
   {
-    title: "Dashboard",
+    title: "Início",
     href: "/dashboard",
     icon: Home,
-  },
-  {
-    title: "Produtos",
-    href: "/dashboard/products",
-    icon: Package,
-  },
-  {
-    title: "Vendas",
-    href: "/dashboard/sales",
-    icon: ShoppingCart,
-  },
-  {
-    title: "Alunos",
-    href: "/dashboard/students",
-    icon: GraduationCap,
   },
 ];
 

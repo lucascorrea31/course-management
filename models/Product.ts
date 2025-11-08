@@ -1,7 +1,9 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IProduct extends Document {
-  kiwifyId: string;
+  platform: "kiwify" | "hotmart";
+  kiwifyId?: string;
+  hotmartId?: string;
   name: string;
   description?: string;
   price: number;
@@ -15,10 +17,16 @@ export interface IProduct extends Document {
 
 const ProductSchema = new Schema<IProduct>(
   {
+    platform: {
+      type: String,
+      enum: ["kiwify", "hotmart"],
+      required: true,
+    },
     kiwifyId: {
       type: String,
-      required: true,
-      unique: true,
+    },
+    hotmartId: {
+      type: String,
     },
     name: {
       type: String,
@@ -53,6 +61,10 @@ const ProductSchema = new Schema<IProduct>(
     timestamps: true,
   }
 );
+
+// Compound unique index: each platform can have unique IDs
+ProductSchema.index({ kiwifyId: 1 }, { unique: true, sparse: true });
+ProductSchema.index({ hotmartId: 1 }, { unique: true, sparse: true });
 
 const Product: Model<IProduct> =
   (mongoose.models?.Product as Model<IProduct>) || mongoose.model<IProduct>("Product", ProductSchema);
