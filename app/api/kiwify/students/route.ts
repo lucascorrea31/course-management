@@ -50,7 +50,7 @@ export async function GET(_request: NextRequest) {
         // Fetch participants for each product
         for (const product of products) {
             try {
-                const response = await kiwify.getEventParticipants(product.kiwifyId, {
+                const response = await kiwify.getEventParticipants(product.kiwifyId!, {
                     page_size: 100, // Fetch up to 100 participants per product
                 });
 
@@ -74,7 +74,7 @@ export async function GET(_request: NextRequest) {
 
                     // Add this product to the student's list
                     student.products.push({
-                        productId: product.kiwifyId,
+                        productId: product.kiwifyId as any,
                         productName: product.name,
                         enrollmentDate: participant.created_at,
                         checkedIn: !!participant.checkin_at,
@@ -88,10 +88,10 @@ export async function GET(_request: NextRequest) {
         }
 
         // Convert map to array and calculate stats
-        const students = Array.from(studentsMap.values()).map(student => ({
+        const students = Array.from(studentsMap.values()).map((student) => ({
             ...student,
             totalPurchases: student.products.length,
-            totalCheckins: student.products.filter(p => p.checkedIn).length,
+            totalCheckins: student.products.filter((p) => p.checkedIn).length,
         }));
 
         // Sort by number of products (most active students first)

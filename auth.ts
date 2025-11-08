@@ -5,69 +5,66 @@ import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  providers: [
-    Credentials({
-      name: "Credentials",
-      credentials: {
-        email: { label: "E-mail", type: "email" },
-        password: { label: "Senha", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Email and password are required");
-        }
+    providers: [
+        Credentials({
+            name: "Credentials",
+            credentials: {
+                email: { label: "E-mail", type: "email" },
+                password: { label: "Senha", type: "password" },
+            },
+            async authorize(credentials) {
+                if (!credentials?.email || !credentials?.password) {
+                    throw new Error("Email and password are required");
+                }
 
-        await dbConnect();
+                await dbConnect();
 
-        // Find user including password
-        const user = await User.findOne({
-          email: credentials.email,
-        }).select("+password");
+                // Find user including password
+                const user = await User.findOne({
+                    email: credentials.email,
+                }).select("+password");
 
-        if (!user) {
-          throw new Error("Invalid credentials");
-        }
+                if (!user) {
+                    throw new Error("Invalid credentials");
+                }
 
-        // Verify password
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password as string,
-          user.password
-        );
+                // Verify password
+                const isPasswordValid = await bcrypt.compare(credentials.password as string, user.password);
 
-        if (!isPasswordValid) {
-          throw new Error("Invalid credentials");
-        }
+                if (!isPasswordValid) {
+                    throw new Error("Invalid credentials");
+                }
 
-        // Return user (without password)
-        return {
-          id: user._id.toString(),
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        };
-      },
-    }),
-  ],
-  session: {
-    strategy: "jwt",
-  },
-  pages: {
-    signIn: "/login",
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
-      }
-      return token;
+                // Return user (without password)
+                return {
+                    id: String(user._id),
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                };
+            },
+        }),
+    ],
+    session: {
+        strategy: "jwt",
     },
-    async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-      }
-      return session;
+    pages: {
+        signIn: "/login",
     },
-  },
+    callbacks: {
+        async jwt({ token, user }) {
+            if (user) {
+                token.id = user.id;
+                token.role = user.role;
+            }
+            return token;
+        },
+        async session({ session, token }) {
+            if (token && session.user) {
+                session.user.id = token.id as string;
+                session.user.role = token.role as string;
+            }
+            return session;
+        },
+    },
 });
