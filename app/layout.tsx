@@ -8,18 +8,23 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
     title: "Course Management",
     description: "Gestor de InfoProdutos e Cursos",
+    icons: {
+        icon: "/favicon.png",
+    },
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <html suppressHydrationWarning>
-      <body className={inter.className} suppressHydrationWarning>
-        <Providers>{children}</Providers>
-      </body>
-    </html>
-  );
+    return (
+        <html suppressHydrationWarning>
+            <body
+                className={inter.className}
+                suppressHydrationWarning>
+                <Providers>{children}</Providers>
+            </body>
+        </html>
+    );
 }
