@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
 
               // Update or add product enrollment
               const productIndex = existingStudent.products.findIndex(
-                (p) => p.productId.toString() === product._id.toString()
+                (p) => p.productId.toString() === String(product._id)
               );
 
               if (productIndex >= 0) {
