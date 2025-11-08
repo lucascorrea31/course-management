@@ -45,26 +45,16 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    console.log("\n=== POST /api/hotmart/products - Sync Products ===");
-
     const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log("User authenticated:", session.user.id);
-    console.log("HOTMART_ENV:", process.env.HOTMART_ENV);
-    console.log("HOTMART_BASIC_AUTH configured:", !!process.env.HOTMART_BASIC_AUTH);
-
     await dbConnect();
-
-    console.log("Starting Hotmart products sync...");
 
     // Fetch products from Hotmart
     const hotmartProducts = await fetchHotmartProducts();
-
-    console.log(`Fetched ${hotmartProducts.length} products from Hotmart`);
 
     let created = 0;
     let updated = 0;
@@ -106,8 +96,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`Sync completed: ${created} created, ${updated} updated`);
-
     return NextResponse.json({
       success: true,
       message: `Synced ${hotmartProducts.length} products (${created} created, ${updated} updated)`,
@@ -135,21 +123,13 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT() {
   try {
-    console.log("\n=== PUT /api/hotmart/products - Test Connection ===");
-
     const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log("User authenticated:", session.user.id);
-    console.log("HOTMART_ENV:", process.env.HOTMART_ENV);
-    console.log("HOTMART_BASIC_AUTH configured:", !!process.env.HOTMART_BASIC_AUTH);
-
     const result = await testHotmartConnection();
-
-    console.log("Test result:", result);
     return NextResponse.json(result);
   } catch (error: unknown) {
     console.error("Error testing Hotmart connection:", error);
