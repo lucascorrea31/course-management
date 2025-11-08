@@ -92,7 +92,7 @@ export default function HotmartProductsPage() {
                     description: data.message,
                 });
             }
-        } catch (error) {
+        } catch (_) {
             toast.error("Erro ao testar conexão", {
                 description: "Verifique suas credenciais da Hotmart",
             });
@@ -113,7 +113,9 @@ export default function HotmartProductsPage() {
 
     const getStatusBadge = (status: string) => {
         return status === "active" ? (
-            <Badge variant="default" className="bg-green-500">
+            <Badge
+                variant="default"
+                className="bg-green-500">
                 <CheckCircle className="w-3 h-3 mr-1" />
                 Ativo
             </Badge>
@@ -164,7 +166,8 @@ export default function HotmartProductsPage() {
                                 Clique em &quot;Sincronizar&quot; para importar seus produtos da Hotmart
                             </p>
                             <p className="text-xs text-muted-foreground">
-                                Certifique-se de ter configurado as variáveis de ambiente HOTMART_CLIENT_ID e HOTMART_CLIENT_SECRET
+                                Certifique-se de ter configurado as variáveis de ambiente HOTMART_CLIENT_ID e
+                                HOTMART_CLIENT_SECRET
                             </p>
                         </div>
                     </CardContent>
@@ -187,9 +190,7 @@ export default function HotmartProductsPage() {
                             <TableBody>
                                 {products.map((product) => (
                                     <TableRow key={product._id}>
-                                        <TableCell className="font-mono text-xs">
-                                            {product.hotmartId}
-                                        </TableCell>
+                                        <TableCell className="font-mono text-xs">{product.hotmartId}</TableCell>
                                         <TableCell className="font-medium">{product.name}</TableCell>
                                         <TableCell>{getStatusBadge(product.status)}</TableCell>
                                         <TableCell className="text-sm text-muted-foreground">
