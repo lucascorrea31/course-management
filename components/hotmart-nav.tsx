@@ -26,7 +26,6 @@ const navItems = [
     title: "Alunos",
     href: "/dashboard/hotmart/students",
     icon: GraduationCap,
-    disabled: true,
   },
 ];
 

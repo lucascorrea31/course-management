@@ -45,6 +45,54 @@ interface HotmartProductsResponse {
     };
 }
 
+interface HotmartSubscriber {
+    id: number;
+    name: string;
+    email: string;
+    phone_number?: string;
+    phone_local_code?: string;
+    cpf?: string;
+    address?: {
+        address?: string;
+        number?: string;
+        complement?: string;
+        neighborhood?: string;
+        city?: string;
+        state?: string;
+        zip_code?: string;
+        country?: string;
+    };
+}
+
+interface HotmartSubscription {
+    subscriber_id: number;
+    subscriber: HotmartSubscriber;
+    product: {
+        id: number;
+        name: string;
+        ucode: string;
+    };
+    accesses: Array<{
+        product_id: number;
+        start_date: number;
+        end_date: number;
+        status: string;
+    }>;
+    status: string; // ACTIVE, CANCELLED, etc
+    date_created: number;
+    date_next_charge?: number;
+    subscription_id: string;
+}
+
+interface HotmartSubscriptionsResponse {
+    items: HotmartSubscription[];
+    page_info: {
+        total_results: number;
+        next_page_token?: string;
+        results_per_page: number;
+    };
+}
+
 /**
  * Get OAuth access token from Hotmart
  */
@@ -173,6 +221,51 @@ export async function fetchHotmartProducts(accessToken?: string): Promise<Hotmar
 }
 
 /**
+ * Fetch subscriptions (students) from Hotmart Club API
+ */
+export async function fetchHotmartSubscriptions(
+    productId?: number,
+    accessToken?: string
+): Promise<HotmartSubscription[]> {
+    try {
+        const token = accessToken || (await getHotmartAccessToken());
+        const allSubscriptions: HotmartSubscription[] = [];
+        let nextPageToken: string | undefined;
+
+        do {
+            const params = new URLSearchParams();
+            if (productId) params.append("product_id", String(productId));
+            if (nextPageToken) params.append("page_token", nextPageToken);
+
+            const url = `${HOTMART_API_BASE_URL}/club/api/v1/subscriptions?${params.toString()}`;
+
+            const response = await fetch(url, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("Failed to fetch Hotmart subscriptions:", response.status, errorText);
+                throw new Error(`Failed to fetch subscriptions: ${response.status} - ${errorText}`);
+            }
+
+            const data: HotmartSubscriptionsResponse = await response.json();
+            allSubscriptions.push(...(data.items || []));
+            nextPageToken = data.page_info?.next_page_token;
+        } while (nextPageToken);
+
+        return allSubscriptions;
+    } catch (error) {
+        console.error("Error fetching Hotmart subscriptions:", error);
+        throw error;
+    }
+}
+
+/**
  * Test Hotmart API connection
  */
 export async function testHotmartConnection(): Promise<{
@@ -197,4 +290,4 @@ export async function testHotmartConnection(): Promise<{
     }
 }
 
-export type { HotmartProduct, HotmartProductsResponse };
+export type { HotmartProduct, HotmartProductsResponse, HotmartSubscription, HotmartSubscriber };

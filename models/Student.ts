@@ -2,7 +2,9 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IStudent extends Document {
   userId: mongoose.Types.ObjectId;
+  platform: "kiwify" | "hotmart";
   kiwifyCustomerId?: string; // ID do cliente na Kiwify
+  hotmartSubscriberId?: string; // ID do assinante na Hotmart
   name: string;
   email: string;
   phone?: string;
@@ -49,7 +51,16 @@ const StudentSchema = new Schema<IStudent>(
       ref: "User",
       required: true,
     },
+    platform: {
+      type: String,
+      enum: ["kiwify", "hotmart"],
+      required: true,
+    },
     kiwifyCustomerId: {
+      type: String,
+      trim: true,
+    },
+    hotmartSubscriberId: {
       type: String,
       trim: true,
     },
@@ -162,9 +173,11 @@ const StudentSchema = new Schema<IStudent>(
 );
 
 // Indexes for better performance
-StudentSchema.index({ userId: 1, email: 1 }, { unique: true });
-StudentSchema.index({ userId: 1, isActive: 1 });
+StudentSchema.index({ userId: 1, platform: 1, email: 1 }, { unique: true });
+StudentSchema.index({ userId: 1, platform: 1, isActive: 1 });
 StudentSchema.index({ email: 1 });
+StudentSchema.index({ kiwifyCustomerId: 1 }, { unique: true, sparse: true });
+StudentSchema.index({ hotmartSubscriberId: 1 }, { unique: true, sparse: true });
 StudentSchema.index({ "telegram.userId": 1 });
 StudentSchema.index({ "telegram.status": 1 });
 
